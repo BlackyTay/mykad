@@ -11,6 +11,10 @@ function dateIsBefore(before, max) {
 
 function codeToDate(year, month, day) {
     const today = new Date();
+
+    if (year == '00') { // A way to fix leap year bug
+        year = today.getFullYear().toString().slice(0,2) + '00';
+    }
     const birthDate = new Date(year, month - 1, day);
 
     const age = today.getYear() - birthDate.getYear();
