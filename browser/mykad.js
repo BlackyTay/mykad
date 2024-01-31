@@ -156,25 +156,20 @@ var countryCodePairs = {
     region: null
   }
 };
-
 function numisBetween(num, lower, upper) {
   return (num - lower) * (num - upper) <= 0;
 }
-
 function codeToState(code) {
   return Object.keys(stateCodePairs).find(function (key) {
     return stateCodePairs[key].includes(code);
   });
 }
-
 function isMalaysia(code) {
   return numisBetween(code, 1, 16) || numisBetween(code, 21, 59) || code == 82;
 }
-
 function isForeign(code) {
   return countryCodePairs[code] != undefined;
 }
-
 function parseMalaysia(code) {
   return {
     region: REGION_SOUTHEAST_ASIA,
@@ -182,23 +177,19 @@ function parseMalaysia(code) {
     state: codeToState(code)
   };
 }
-
 function parseForeign(code) {
   return Object.assign({
     state: null
   }, countryCodePairs[code]);
 }
-
 function parse(code) {
   if (isMalaysia(code)) return parseMalaysia(code);
   if (isForeign(code)) return parseForeign(code);
   return null;
 }
-
 function isValid(code) {
   return isMalaysia(code) || isForeign(code);
 }
-
 module.exports = {
   parse: parse,
   isValid: isValid
@@ -207,100 +198,85 @@ module.exports = {
 "use strict";
 
 var birthplace = require('./birthplace');
+var random = require('./random');
 
-var random = require('./random'); // Check if date is before disregarding year.
-
-
+// Check if date is before disregarding year.
 function dateIsBefore(before, max) {
   var bNorm = new Date(0, before.getMonth(), before.getDate());
   var mNorm = new Date(0, max.getMonth(), max.getDate());
   return bNorm < mNorm;
 }
-
 function codeToDate(year, month, day) {
   var today = new Date();
+  if (year == '00') {
+    // A way to fix leap year bug
+    year = today.getFullYear().toString().slice(0, 2) + '00';
+  }
   var birthDate = new Date(year, month - 1, day);
-  var age = today.getYear() - birthDate.getYear(); // Works for now. Update this in year 2099.
-  // For same year, checks if date has passed.
+  var age = today.getYear() - birthDate.getYear();
 
+  // Works for now. Update this in year 2099.
+  // For same year, checks if date has passed.
   if (age > 100 || age == 100 && dateIsBefore(birthDate, today)) {
     birthDate.setFullYear(birthDate.getFullYear() + 100);
-  } // Check valid date.
+  }
 
-
+  // Check valid date.
   return birthDate.getDate() == day && birthDate.getMonth() == month - 1 ? birthDate : NaN;
 }
-
 function codeToGender(code) {
   return code % 2 === 0 ? 'female' : 'male';
 }
-
 function extractParts(icNum) {
   var regex = /^(\d{2})(\d{2})(\d{2})-?(\d{2})-?(\d{3})(\d{1})$/;
   var parts = icNum.match(regex);
-
   if (!parts) {
     throw new Error('Invalid MyKad number format');
   }
-
   return parts;
 }
-
 function isValid(icNum) {
   var parts;
-
   try {
     parts = extractParts(icNum);
   } catch (error) {
     return false;
   }
-
   var birthDate = codeToDate(parts[1], parts[2], parts[3]);
   return !isNaN(birthDate) && birthplace.isValid(parts[4]);
 }
-
 function parse(icNum, cb) {
   var parts;
-
   try {
     parts = extractParts(icNum);
   } catch (error) {
     if (!cb) throw error;
     return cb(error, null);
   }
-
   var parsedData = {
     birthDate: codeToDate(parts[1], parts[2], parts[3]),
     birthPlace: birthplace.parse(parts[4]),
     gender: codeToGender(parts[6])
   };
-
   if (cb) {
     return cb(null, parsedData);
   }
-
   return parsedData;
 }
-
 function format(icNum, cb) {
   var parts;
-
   try {
     parts = extractParts(icNum);
   } catch (error) {
     if (!cb) throw error;
     return cb(error, null);
   }
-
   var formatted = "".concat(parts[1]).concat(parts[2]).concat(parts[3], "-").concat(parts[4], "-").concat(parts[5]).concat(parts[6]);
-
   if (cb) {
     return cb(null, formatted);
   }
-
   return formatted;
 }
-
 function unformat(icNum, cb) {
   if (!cb) {
     try {
@@ -310,16 +286,13 @@ function unformat(icNum, cb) {
       throw error;
     }
   }
-
   format(icNum, function (err, formatted) {
     if (err) {
       return cb(err, null);
     }
-
     return cb(null, formatted.replace(/-/g, ''));
   });
 }
-
 module.exports = {
   isValid: isValid,
   parse: parse,
@@ -331,22 +304,18 @@ module.exports = {
 "use strict";
 
 var birthplace = require('./birthplace');
-
 function randomNumberBetween(min, max) {
   return Math.floor(Math.random() * (max - min + 1)) + min;
 }
-
 function randomDate() {
   var today = new Date();
   var start = new Date();
   start.setFullYear(start.getFullYear() - 99);
   return new Date(start.getTime() + Math.random() * (today.getTime() - start.getTime()));
 }
-
 function twoDigitFormat(num) {
   return ('0' + num).slice(-2);
 }
-
 function dateToCode(date) {
   var code = '';
   code += date.getFullYear().toString().substr(2, 2);
@@ -354,31 +323,23 @@ function dateToCode(date) {
   code += twoDigitFormat(date.getDate());
   return code;
 }
-
 function randomBirthplace() {
   var randomCode;
-
   do {
     randomCode = twoDigitFormat(randomNumberBetween(1, 99));
   } while (!birthplace.isValid(randomCode));
-
   return randomCode;
 }
-
 function randomSpecialNumber() {
   var code = '';
-
   for (var i = 0; i < 4; i += 1) {
     code += randomNumberBetween(0, 9);
   }
-
   return code;
 }
-
 function generateRandom() {
   return dateToCode(randomDate()) + randomBirthplace() + randomSpecialNumber();
 }
-
 module.exports = {
   generateRandom: generateRandom
 };
